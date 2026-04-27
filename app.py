@@ -20,22 +20,32 @@ st.markdown(
 )
 
 # ---- Sidebar: parameters ----
-st.sidebar.header("Parameters")
+st.sidebar.header("Preference parameters")
 alpha = st.sidebar.slider("α (weight on attractiveness)", 0.05, 0.95, 0.5, 0.05)
 gamma = st.sidebar.slider("γ (attractiveness threshold)", 0.05, 0.95, 0.5, 0.05)
-t     = st.sidebar.slider("t (visibility boost)", 0.0, 10.0, 5.0, 0.5)
-c     = st.sidebar.slider("c (swiping cost)", 0.0, 0.5, 0.05, 0.01)
-p     = st.sidebar.slider("p (premium price)", 0.0, 1.0, 0.15, 0.01)
-E_s   = st.sidebar.slider("E_s (total side exposure)", 1.0, 200.0, 50.0, 1.0)
+
+st.sidebar.header("Premium parameters")
+t = st.sidebar.slider("t (visibility boost)", 0.0, 10.0, 5.0, 0.5)
+p = st.sidebar.slider("p (premium price)", 0.0, 0.2, 0.05, 0.005)
+c = st.sidebar.slider("c (swiping cost)", 0.0, 0.1, 0.04, 0.005)
+
+st.sidebar.header("Market structure")
+pi_s = st.sidebar.slider("π_s (premium adoption rate)", 0.0, 1.0, 0.3, 0.05)
+rho  = st.sidebar.slider("ρ (sex ratio N_-s / N_s)", 0.5, 2.0, 1.0, 0.1)
+K    = st.sidebar.slider("K (attention budget per opposite-side user)",
+                         0.5, 5.0, 1.0, 0.1)
+
+# ---- Derived ----
+e_bar = 1 + pi_s * t
 
 # ---- Compute ----
 theta = np.linspace(0.001, 1.0, 500)
 
 mu_vals = mu(theta, alpha, gamma)
 V_vals  = V(theta, alpha, gamma)
-vis     = visibility_gain(theta, alpha, gamma, t, E_s)
+vis     = visibility_gain(theta, alpha, gamma, t, e_bar, rho, K)
 filt    = filter_saving(theta, alpha, gamma, c)
-total   = delta_U(theta, alpha, gamma, c, E_s, t, p)
+total   = delta_U(theta, alpha, gamma, c, e_bar, rho, K, t, p)
 
 theta_mu = theta_mu_peak(gamma)
 theta_V  = theta_V_peak(gamma)
@@ -90,7 +100,27 @@ with col2:
 # ---- Live readouts ----
 st.markdown("---")
 st.subheader("Key quantities")
-c1, c2, c3 = st.columns(3)
-c1.metric(r"θ_μ (match probability peak)", f"{theta_mu:.3f}")
-c2.metric(r"θ_V (expected match value peak)", f"{theta_V:.3f}")
-c3.metric("Adoption fraction (uniform θ)", f"{adopt_mass:.1%}")
+c1, c2, c3, c4 = st.columns(4)
+c1.metric("θ_μ (match probability peak)", f"{theta_mu:.3f}")
+c2.metric("θ_V (expected match value peak)", f"{theta_V:.3f}")
+c3.metric("ē_s (average exposure)", f"{e_bar:.2f}")
+c4.metric("Adoption fraction (uniform θ)", f"{adopt_mass:.1%}")
+
+# ---- Explanatory notes ----
+st.markdown("---")
+st.markdown("""
+**Parameter notes**
+- **α, γ**: preference weights. α is the relative weight on partner
+  attractiveness vs. compatibility; γ is the relative-attractiveness
+  threshold required for acceptance.
+- **t, p, c**: premium parameters. t is the visibility boost factor,
+  p is the per-period subscription price, c is the per-swipe attention
+  cost.
+- **π_s**: fraction of premium subscribers on the user's own side.
+  Higher π_s raises ē_s and dilutes everyone's attention share — the
+  congestion externality from premium adoption.
+- **ρ**: sex ratio facing the user's side (size of opposite side / size
+  of own side). ρ > 1 means the opposite side is larger.
+- **K**: attention budget per opposite-side user. Higher K means
+  opposite-side users swipe more profiles per period.
+""")
