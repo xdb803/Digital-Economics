@@ -9,49 +9,48 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from model import (mu, V, delta, visibility_gain, filter_saving, delta_U,
-                   theta_mu_peak, theta_V_peak)
+                   theta_mu_peak, theta_V_peak, equilibrium_pi)
 
 st.set_page_config(page_title="Dating Platform Model", layout="wide")
 
 st.title("Premium Visibility and Matching: Interactive Model")
 st.markdown(
-    "Companion to the paper. Use the sliders to explore how the "
-    "matching environment and premium surplus respond to model parameters."
+    "Companion to the paper. Adjust the sliders to explore how the "
+    "matching environment and premium surplus respond to model parameters. "
+    "The adoption rate π is solved endogenously as the fixed point at which "
+    "the mass of users with ΔU > 0 equals π."
 )
 
 # ---- Sidebar: parameters ----
-st.sidebar.header("Preference parameters")
+st.sidebar.header("Parameters")
 alpha = st.sidebar.slider("α (weight on attractiveness)", 0.05, 0.95, 0.5, 0.05)
 gamma = st.sidebar.slider("γ (attractiveness threshold)", 0.05, 0.95, 0.5, 0.05)
+t     = st.sidebar.slider("t (visibility boost)", 0.0, 10.0, 5.0, 0.5)
+c     = st.sidebar.slider("c (swiping cost)", 0.0, 0.5, 0.05, 0.01)
+p     = st.sidebar.slider("p (premium price)", 0.0, 1.0, 0.15, 0.01)
+rho   = st.sidebar.slider("ρ (sex ratio N_{-s}/N_s)", 0.25, 4.0, 1.0, 0.25)
+K     = st.sidebar.slider("K (attention budget)", 0.1, 5.0, 1.0, 0.1)
 
-st.sidebar.header("Premium parameters")
-t = st.sidebar.slider("t (visibility boost)", 0.0, 10.0, 5.0, 0.5)
-p = st.sidebar.slider("p (premium price)", 0.0, 0.2, 0.05, 0.005)
-c = st.sidebar.slider("c (swiping cost)", 0.0, 0.1, 0.04, 0.005)
+# ---- Solve for equilibrium π endogenously ----
+pi_eq, e_bar_eq = equilibrium_pi(p, alpha, gamma, c, rho, K, t)
 
-st.sidebar.header("Market structure")
-pi_s = st.sidebar.slider("π_s (premium adoption rate)", 0.0, 1.0, 0.3, 0.05)
-rho  = st.sidebar.slider("ρ (sex ratio N_-s / N_s)", 0.5, 2.0, 1.0, 0.1)
-K    = st.sidebar.slider("K (attention budget per opposite-side user)",
-                         0.5, 5.0, 1.0, 0.1)
-
-# ---- Derived ----
-e_bar = 1 + pi_s * t
-
-# ---- Compute ----
+# ---- Compute curves ----
 theta = np.linspace(0.001, 1.0, 500)
 
 mu_vals = mu(theta, alpha, gamma)
 V_vals  = V(theta, alpha, gamma)
-vis     = visibility_gain(theta, alpha, gamma, t, e_bar, rho, K)
-filt    = filter_saving(theta, alpha, gamma, c)
-total   = delta_U(theta, alpha, gamma, c, e_bar, rho, K, t, p)
+vis     = visibility_gain(theta, alpha, gamma, t, e_bar_eq, rho, K)
+filt    = filter_saving(theta, alpha, gamma, c, K)
+total   = delta_U(theta, alpha, gamma, c, e_bar_eq, rho, K, t, p)
 
 theta_mu = theta_mu_peak(gamma)
 theta_V  = theta_V_peak(gamma)
 
-# Adoption fraction (assuming uniform theta)
-adopt_mass = float(np.mean(total > 0))
+# ---- Equilibrium readout banner ----
+st.info(
+    f"**Equilibrium:** π_s = {pi_eq:.3f} · ē_s = {e_bar_eq:.3f} "
+    f"(solved as fixed point of adoption given price p = {p})"
+)
 
 # ---- Layout ----
 col1, col2 = st.columns(2)
@@ -89,7 +88,11 @@ with col2:
              label="Filter saving")
     ax2.axhline(0, color="grey", linewidth=0.7)
     ax2.fill_between(theta, 0, total, where=(total > 0),
-                     color="black", alpha=0.08)
+                     color="black", alpha=0.08,
+                     label=f"Adoption region (π = {pi_eq:.2f})")
+    if 0 < theta_V < 1:
+        ax2.axvline(theta_V, color="grey", linewidth=0.7, linestyle="-.", alpha=0.7)
+        ax2.text(theta_V, 0, r"$\theta_i^V$", ha="center", va="bottom", fontsize=9)
     ax2.set_xlabel(r"$\theta_i$")
     ax2.set_xlim(0, 1)
     ax2.legend(frameon=False, loc="lower center")
@@ -100,27 +103,38 @@ with col2:
 # ---- Live readouts ----
 st.markdown("---")
 st.subheader("Key quantities")
-c1, c2, c3, c4 = st.columns(4)
-c1.metric("θ_μ (match probability peak)", f"{theta_mu:.3f}")
-c2.metric("θ_V (expected match value peak)", f"{theta_V:.3f}")
-c3.metric("ē_s (average exposure)", f"{e_bar:.2f}")
-c4.metric("Adoption fraction (uniform θ)", f"{adopt_mass:.1%}")
+c1, c2, c3, c4, c5 = st.columns(5)
+c1.metric("θ_μ (match prob. peak)", f"{theta_mu:.3f}")
+c2.metric("θ_V (match value peak)", f"{theta_V:.3f}")
+c3.metric("Equilibrium π_s", f"{pi_eq:.3f}")
+c4.metric("ē_s = 1 + π·t", f"{e_bar_eq:.3f}")
+c5.metric("Adoption fraction check", f"{float(np.mean(total > 0)):.3f}")
 
-# ---- Explanatory notes ----
+# ---- Comparative statics: π vs price ----
 st.markdown("---")
-st.markdown("""
-**Parameter notes**
-- **α, γ**: preference weights. α is the relative weight on partner
-  attractiveness vs. compatibility; γ is the relative-attractiveness
-  threshold required for acceptance.
-- **t, p, c**: premium parameters. t is the visibility boost factor,
-  p is the per-period subscription price, c is the per-swipe attention
-  cost.
-- **π_s**: fraction of premium subscribers on the user's own side.
-  Higher π_s raises ē_s and dilutes everyone's attention share — the
-  congestion externality from premium adoption.
-- **ρ**: sex ratio facing the user's side (size of opposite side / size
-  of own side). ρ > 1 means the opposite side is larger.
-- **K**: attention budget per opposite-side user. Higher K means
-  opposite-side users swipe more profiles per period.
-""")
+st.subheader("Comparative statics: equilibrium adoption vs. price")
+p_grid = np.linspace(0.001, float(
+    (visibility_gain(theta, alpha, gamma, t, 1.0, rho, K)
+     + filter_saving(theta, alpha, gamma, c, K)).max()
+) * 1.1, 80)
+
+pi_curve = []
+for p_val in p_grid:
+    pi_val, _ = equilibrium_pi(p_val, alpha, gamma, c, rho, K, t)
+    pi_curve.append(pi_val)
+pi_curve = np.array(pi_curve)
+
+fig3, ax3 = plt.subplots(figsize=(6, 3.5))
+ax3.plot(p_grid, pi_curve, color="black")
+ax3.axvline(p, color="grey", linestyle="--", alpha=0.8,
+            label=f"Current p = {p}")
+ax3.axhline(pi_eq, color="grey", linestyle=":", alpha=0.8,
+            label=f"π_eq = {pi_eq:.3f}")
+ax3.set_xlabel("Premium price p")
+ax3.set_ylabel("Equilibrium π_s")
+ax3.set_xlim(0, p_grid[-1])
+ax3.set_ylim(0, 1.05)
+ax3.legend(frameon=False)
+ax3.spines["top"].set_visible(False)
+ax3.spines["right"].set_visible(False)
+st.pyplot(fig3)
