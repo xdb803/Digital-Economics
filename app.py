@@ -25,23 +25,22 @@ st.markdown(
 st.sidebar.header("Parameters")
 alpha = st.sidebar.slider("α (weight on attractiveness)", 0.05, 0.95, 0.5, 0.05)
 gamma = st.sidebar.slider("γ (attractiveness threshold)", 0.05, 0.95, 0.5, 0.05)
-t     = st.sidebar.slider("t (visibility boost)", 0.0, 10.0, 5.0, 0.5)
-c     = st.sidebar.slider("c (swiping cost)", 0.0, 0.5, 0.05, 0.01)
-p     = st.sidebar.slider("p (premium price)", 0.0, 1.0, 0.15, 0.01)
+t     = st.sidebar.slider("t (visibility boost)", 0.0, 100.0, 5.0, 0.5)
+c     = st.sidebar.slider("c (swiping cost)", 0.0, 0.5, 0.05, 0.001)
+p     = st.sidebar.slider("p (premium price)", 0.0, 1.0, 0.15, 0.001)
 rho   = st.sidebar.slider("ρ (sex ratio N_{-s}/N_s)", 0.25, 4.0, 1.0, 0.25)
-K     = st.sidebar.slider("K (attention budget)", 0.1, 5.0, 1.0, 0.1)
 
 # ---- Solve for equilibrium π endogenously ----
-pi_eq, e_bar_eq = equilibrium_pi(p, alpha, gamma, c, rho, K, t)
+pi_eq, e_bar_eq = equilibrium_pi(p, alpha, gamma, c, rho, t)
 
 # ---- Compute curves ----
 theta = np.linspace(0.001, 1.0, 500)
 
 mu_vals = mu(theta, alpha, gamma)
 V_vals  = V(theta, alpha, gamma)
-vis     = visibility_gain(theta, alpha, gamma, t, e_bar_eq, rho, K)
-filt    = filter_saving(theta, alpha, gamma, c, K)
-total   = delta_U(theta, alpha, gamma, c, e_bar_eq, rho, K, t, p)
+vis     = visibility_gain(theta, alpha, gamma, t, e_bar_eq, rho)
+filt    = filter_saving(theta, alpha, gamma, c)
+total   = delta_U(theta, alpha, gamma, c, e_bar_eq, rho, t, p)
 
 theta_mu = theta_mu_peak(gamma)
 theta_V  = theta_V_peak(gamma)
@@ -114,13 +113,13 @@ c5.metric("Adoption fraction check", f"{float(np.mean(total > 0)):.3f}")
 st.markdown("---")
 st.subheader("Comparative statics: equilibrium adoption vs. price")
 p_grid = np.linspace(0.001, float(
-    (visibility_gain(theta, alpha, gamma, t, 1.0, rho, K)
-     + filter_saving(theta, alpha, gamma, c, K)).max()
+    (visibility_gain(theta, alpha, gamma, t, 1.0, rho)
+     + filter_saving(theta, alpha, gamma, c)).max()
 ) * 1.1, 80)
 
 pi_curve = []
 for p_val in p_grid:
-    pi_val, _ = equilibrium_pi(p_val, alpha, gamma, c, rho, K, t)
+    pi_val, _ = equilibrium_pi(p_val, alpha, gamma, c, rho, t)
     pi_curve.append(pi_val)
 pi_curve = np.array(pi_curve)
 
