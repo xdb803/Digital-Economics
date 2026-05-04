@@ -26,8 +26,8 @@ st.sidebar.header("Parameters")
 alpha = st.sidebar.slider("α (weight on attractiveness)", 0.05, 0.95, 0.5, 0.05)
 gamma = st.sidebar.slider("γ (attractiveness threshold)", 0.05, 0.95, 0.5, 0.05)
 t     = st.sidebar.slider("t (visibility boost)", 0.0, 100.0, 5.0, 0.5)
-c     = st.sidebar.slider("c (swiping cost)", 0.0, 0.5, 0.05, 0.001)
-p     = st.sidebar.slider("p (premium price)", 0.0, 1.0, 0.15, 0.001)
+c     = st.sidebar.slider("c (swiping cost)", 0.0, 0.5, 0.05, 0.001, format="%.3f")
+p     = st.sidebar.slider("p (premium price)", 0.0, 1.0, 0.15, 0.001, format="%.3f")
 rho   = st.sidebar.slider("ρ (sex ratio N_{-s}/N_s)", 0.25, 4.0, 1.0, 0.25)
 
 # ---- Solve for equilibrium π endogenously ----
