@@ -58,37 +58,37 @@ def theta_V_peak(gamma):
     return num / den
 
 
-def U_free(theta, alpha, gamma, c, e_bar, rho, K):
-    return (rho * K / e_bar) * V(theta, alpha, gamma) - c * K * (1 - mu(theta, alpha, gamma))
+def U_free(theta, alpha, gamma, c, e_bar, rho):
+    return (rho / e_bar) * V(theta, alpha, gamma) - c * (1 - mu(theta, alpha, gamma))
 
 
-def U_premium(theta, alpha, gamma, c, e_bar, rho, K, t, p):
-    return ((rho * K * (1 + t)) / e_bar * V(theta, alpha, gamma)
-            - c * K * (delta(theta, alpha, gamma) - mu(theta, alpha, gamma))
+def U_premium(theta, alpha, gamma, c, e_bar, rho, t, p):
+    return ((rho * (1 + t)) / e_bar * V(theta, alpha, gamma)
+            - c * (delta(theta, alpha, gamma) - mu(theta, alpha, gamma))
             - p)
 
 
-def visibility_gain(theta, alpha, gamma, t, e_bar, rho, K):
-    return (rho * K * t / e_bar) * V(theta, alpha, gamma)
+def visibility_gain(theta, alpha, gamma, t, e_bar, rho):
+    return (rho * t / e_bar) * V(theta, alpha, gamma)
 
 
-def filter_saving(theta, alpha, gamma, c, K):
-    return c * K * (1 - delta(theta, alpha, gamma))
+def filter_saving(theta, alpha, gamma, c):
+    return c * (1 - delta(theta, alpha, gamma))
 
 
-def delta_U(theta, alpha, gamma, c, e_bar, rho, K, t, p):
-    return (visibility_gain(theta, alpha, gamma, t, e_bar, rho, K)
-            + filter_saving(theta, alpha, gamma, c, K)
+def delta_U(theta, alpha, gamma, c, e_bar, rho, t, p):
+    return (visibility_gain(theta, alpha, gamma, t, e_bar, rho)
+            + filter_saving(theta, alpha, gamma, c)
             - p)
 
-def adoption_rate(p, theta_grid, alpha, gamma, c, e_bar, rho, K, t):
+def adoption_rate(p, theta_grid, alpha, gamma, c, e_bar, rho, t):
     """Fraction of users for whom Delta U > 0 at price p."""
-    surplus = delta_U(theta_grid, alpha, gamma, c, e_bar, rho, K, t, p)
+    surplus = delta_U(theta_grid, alpha, gamma, c, e_bar, rho, t, p)
     return float(np.mean(surplus > 0))
 
 
 
-def equilibrium_pi(p, alpha, gamma, c, rho, K, t, tol=1e-8, n_theta=500):
+def equilibrium_pi(p, alpha, gamma, c, rho, t, tol=1e-8, n_theta=500):
     """
     Find equilibrium premium adoption rate as fixed point of
         F(pi) = fraction of users with delta_U > 0 at e_bar = 1 + pi*t.
@@ -102,7 +102,7 @@ def equilibrium_pi(p, alpha, gamma, c, rho, K, t, tol=1e-8, n_theta=500):
 
     def F(pi):
         e_bar = 1.0 + pi * t
-        surplus = delta_U(theta_grid, alpha, gamma, c, e_bar, rho, K, t, p)
+        surplus = delta_U(theta_grid, alpha, gamma, c, e_bar, rho, t, p)
         return float(np.mean(surplus > 0))
 
     # Corner solution: no adoption at all even when e_bar = 1
