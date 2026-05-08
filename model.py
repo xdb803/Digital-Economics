@@ -126,3 +126,30 @@ def equilibrium_pi(p, alpha, gamma, c, rho, t, tol=1e-8, n_theta=500):
 
     pi_eq = 0.5 * (lo + hi)
     return pi_eq, 1.0 + pi_eq * t
+
+
+def optimal_price(alpha, gamma, c, rho, t, n_p=300, n_theta=500):
+    """
+    Find the revenue-maximising price p* = argmax_p { p · pi_eq(p) }.
+
+    The upper bound for the search is the price at which zero users adopt
+    even when congestion is absent (e_bar = 1, i.e. pi = 0): that is the
+    maximum of the uncongested surplus delta_U|_{pi=0}.
+    Returns (p_opt, pi_opt, e_bar_opt).
+    """
+    theta_grid = np.linspace(0.001, 1.0, n_theta)
+    p_max = float(
+        (visibility_gain(theta_grid, alpha, gamma, t, 1.0, rho)
+         + filter_saving(theta_grid, alpha, gamma, c)).max()
+    )
+    p_grid = np.linspace(0.001, p_max, n_p)
+
+    revenues = np.array([
+        p_val * equilibrium_pi(p_val, alpha, gamma, c, rho, t,
+                               n_theta=n_theta)[0]
+        for p_val in p_grid
+    ])
+    p_opt = float(p_grid[np.argmax(revenues)])
+    pi_opt, e_bar_opt = equilibrium_pi(p_opt, alpha, gamma, c, rho, t,
+                                       n_theta=n_theta)
+    return p_opt, pi_opt, e_bar_opt
