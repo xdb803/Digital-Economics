@@ -68,22 +68,24 @@ def U_premium(theta, alpha, gamma, c, e_bar, rho, t, p):
             - p)
 
 
-def visibility_gain(theta, alpha, gamma, t, e_bar, rho):
-    return (rho * t / e_bar) * V(theta, alpha, gamma)
+def visibility_gain(theta, alpha, gamma, t, e_bar, rho, pi):
+    """Relative visibility advantage of premium over the average user.
+    Equals zero when pi=1 (everyone premium → no relative gain)."""
+    return (rho * t * (1 - pi) / e_bar) * V(theta, alpha, gamma)
 
 
 def filter_saving(theta, alpha, gamma, c):
     return c * (1 - delta(theta, alpha, gamma))
 
 
-def delta_U(theta, alpha, gamma, c, e_bar, rho, t, p):
-    return (visibility_gain(theta, alpha, gamma, t, e_bar, rho)
+def delta_U(theta, alpha, gamma, c, e_bar, rho, t, p, pi):
+    return (visibility_gain(theta, alpha, gamma, t, e_bar, rho, pi)
             + filter_saving(theta, alpha, gamma, c)
             - p)
 
-def adoption_rate(p, theta_grid, alpha, gamma, c, e_bar, rho, t):
+def adoption_rate(p, theta_grid, alpha, gamma, c, e_bar, rho, t, pi):
     """Fraction of users for whom Delta U > 0 at price p."""
-    surplus = delta_U(theta_grid, alpha, gamma, c, e_bar, rho, t, p)
+    surplus = delta_U(theta_grid, alpha, gamma, c, e_bar, rho, t, p, pi)
     return float(np.mean(surplus > 0))
 
 
@@ -102,7 +104,7 @@ def equilibrium_pi(p, alpha, gamma, c, rho, t, tol=1e-8, n_theta=500):
 
     def F(pi):
         e_bar = 1.0 + pi * t
-        surplus = delta_U(theta_grid, alpha, gamma, c, e_bar, rho, t, p)
+        surplus = delta_U(theta_grid, alpha, gamma, c, e_bar, rho, t, p, pi)
         return float(np.mean(surplus > 0))
 
     # Corner solution: no adoption at all even when e_bar = 1
@@ -139,7 +141,7 @@ def optimal_price(alpha, gamma, c, rho, t, n_p=300, n_theta=500):
     """
     theta_grid = np.linspace(0.001, 1.0, n_theta)
     p_max = float(
-        (visibility_gain(theta_grid, alpha, gamma, t, 1.0, rho)
+        (visibility_gain(theta_grid, alpha, gamma, t, 1.0, rho, pi=0.0)
          + filter_saving(theta_grid, alpha, gamma, c)).max()
     )
     p_grid = np.linspace(0.001, p_max, n_p)
