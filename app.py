@@ -38,9 +38,9 @@ theta = np.linspace(0.001, 1.0, 500)
 
 mu_vals = mu(theta, alpha, gamma)
 V_vals  = V(theta, alpha, gamma)
-vis     = visibility_gain(theta, alpha, gamma, t, e_bar_opt, rho)
+vis     = visibility_gain(theta, alpha, gamma, t, e_bar_opt, rho, pi_opt)
 filt    = filter_saving(theta, alpha, gamma, c)
-total   = delta_U(theta, alpha, gamma, c, e_bar_opt, rho, t, p_opt)
+total   = delta_U(theta, alpha, gamma, c, e_bar_opt, rho, t, p_opt, pi_opt)
 
 theta_mu = theta_mu_peak(gamma)
 theta_V  = theta_V_peak(gamma)
@@ -115,7 +115,7 @@ st.markdown("---")
 st.subheader("Comparative statics: adoption and revenue vs. price")
 
 p_max_plot = float(
-    (visibility_gain(theta, alpha, gamma, t, 1.0, rho)
+    (visibility_gain(theta, alpha, gamma, t, 1.0, rho, pi=0.0)
      + filter_saving(theta, alpha, gamma, c)).max()
 ) * 1.1
 p_grid = np.linspace(0.001, p_max_plot, 120)
